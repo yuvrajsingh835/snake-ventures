@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Snake Ventures
+Comment=A modern Snake game with multiple difficulty levels
+Exec=/usr/local/bin/snake-game
+Icon=/usr/share/snake-game/icon.png
+Categories=Game;ArcadeGame;
+Terminal=false 

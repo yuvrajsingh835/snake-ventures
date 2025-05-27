@@ -1,0 +1,4 @@
+#!/bin/bash
+chmod 755 /usr/local/bin/snake-game
+chmod 644 /usr/share/snake-game/main.py
+chmod 644 /usr/share/applications/snake-game.desktop 
