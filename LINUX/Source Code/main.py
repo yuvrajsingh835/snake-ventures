@@ -2,6 +2,7 @@ import pygame
 import random
 import sys
 import os
+import math
 from typing import List, Tuple
 from enum import Enum
 
@@ -16,7 +17,7 @@ FOOD_SIZE = 15
 GRID_SIZE = SNAKE_SIZE  # Use snake size as grid size
 GRID_WIDTH = int(WINDOW_WIDTH // GRID_SIZE)
 GRID_HEIGHT = int(WINDOW_HEIGHT // GRID_SIZE)
-BOUNDARY_THICKNESS = 0.25  # Reduced boundary thickness to half a grid cell
+BOUNDARY_THICKNESS = 0.25  # Keep the thin boundary
 
 # Reserve top area for UI (score, level, etc.)
 UI_HEIGHT = 40  # pixels
@@ -26,6 +27,13 @@ GRID_HEIGHT_PLAYABLE = PLAY_AREA_HEIGHT // GRID_SIZE
 # Menu settings
 MENU_SPACING = 100  # Space between menu items
 MENU_ITEM_HEIGHT = 60  # Height of each menu item
+
+# Title Animation Settings
+TITLE_FONT_SIZE = 120
+SNAKE_SEGMENTS = 15  # Increased segments for smoother animation
+SNAKE_RADIUS = 130  # Radius of the figure-8 pattern
+SNAKE_SPEED = 1.5  # Adjusted speed for smoother movement
+PULSE_SPEED = 0.05  # Speed of the pulsing effect
 
 # Game settings
 class Level(Enum):

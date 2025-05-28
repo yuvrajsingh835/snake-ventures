@@ -2,6 +2,7 @@ import pygame
 import random
 import sys
 import os
+import math
 from typing import List, Tuple
 from enum import Enum
 
@@ -16,7 +17,7 @@ FOOD_SIZE = 15
 GRID_SIZE = SNAKE_SIZE  # Use snake size as grid size
 GRID_WIDTH = int(WINDOW_WIDTH // GRID_SIZE)
 GRID_HEIGHT = int(WINDOW_HEIGHT // GRID_SIZE)
-BOUNDARY_THICKNESS = 0.25  # Reduced boundary thickness to half a grid cell
+BOUNDARY_THICKNESS = 0.25  # Keep the thin boundary
 
 # Reserve top area for UI (score, level, etc.)
 UI_HEIGHT = 40  # pixels
@@ -26,6 +27,13 @@ GRID_HEIGHT_PLAYABLE = PLAY_AREA_HEIGHT // GRID_SIZE
 # Menu settings
 MENU_SPACING = 100  # Space between menu items
 MENU_ITEM_HEIGHT = 60  # Height of each menu item
+
+# Title Animation Settings
+TITLE_FONT_SIZE = 120
+SNAKE_SEGMENTS = 15  # Increased segments for smoother animation
+SNAKE_RADIUS = 130  # Radius of the figure-8 pattern
+SNAKE_SPEED = 1.5  # Adjusted speed for smoother movement
+PULSE_SPEED = 0.05  # Speed of the pulsing effect
 
 # Game settings
 class Level(Enum):
@@ -59,6 +67,95 @@ UI_COLORS = {
 SPEED_EASY = 10
 SPEED_MEDIUM = 8
 SPEED_HARD = 10
+
+class Title:
+    def __init__(self):
+        self.font = pygame.font.Font(None, TITLE_FONT_SIZE)
+        self.text = "Snake Ventures"
+        self.angle = 0
+        self.pulse = 0
+        self.segments = [(0, 0) for _ in range(SNAKE_SEGMENTS)]
+        self.center_x = WINDOW_WIDTH // 2
+        self.center_y = WINDOW_HEIGHT // 3
+        
+        # Create dynamic rainbow colors for the snake
+        self.colors = []
+        for i in range(SNAKE_SEGMENTS):
+            hue = (i / SNAKE_SEGMENTS) * 360
+            # Convert HSV to RGB (hue, 1, 1) - full saturation and value
+            c = pygame.Color(0, 0, 0)
+            c.hsva = (hue, 100, 100, 100)
+            self.colors.append(c)
+
+    def update(self):
+        self.angle += SNAKE_SPEED
+        self.pulse += PULSE_SPEED
+        
+        # Calculate figure-8 pattern positions
+        for i in range(SNAKE_SEGMENTS):
+            t = self.angle - (i * 360 / SNAKE_SEGMENTS)
+            # Figure-8 parametric equations
+            x = self.center_x + SNAKE_RADIUS * math.sin(math.radians(t * 2)) * 0.7  # Horizontal figure-8
+            y = self.center_y + SNAKE_RADIUS * math.sin(math.radians(t)) * 0.4      # Vertical component
+            self.segments[i] = (x, y)
+
+        # Update colors dynamically
+        for i in range(SNAKE_SEGMENTS):
+            hue = (self.angle + (i * 360 / SNAKE_SEGMENTS)) % 360
+            self.colors[i].hsva = (hue, 100, 100, 100)
+
+    def draw(self, screen):
+        # Create a surface for the glowing effect
+        glow_surface = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.SRCALPHA)
+        
+        # Draw the snake segments with dynamic sizing and glow
+        for i, (x, y) in enumerate(self.segments):
+            # Calculate pulsing size
+            pulse_factor = 1 + 0.2 * math.sin(self.pulse + i * 0.2)
+            base_size = SNAKE_SIZE * (1.3 - i * 0.03)  # Base size decreases along the snake
+            size = base_size * pulse_factor
+            
+            # Draw glow effect
+            for radius in range(int(size * 2), int(size // 2), -2):
+                alpha = int((radius / (size * 2)) * 100)
+                glow_color = (*self.colors[i][0:3], alpha)
+                pygame.draw.circle(glow_surface, glow_color, (int(x), int(y)), radius)
+            
+            # Draw main segment
+            pygame.draw.circle(screen, self.colors[i], (int(x), int(y)), int(size))
+        
+        # Apply glow effect
+        screen.blit(glow_surface, (0, 0), special_flags=pygame.BLEND_ALPHA_SDL2)
+        
+        # Create shimmering effect for text
+        shimmer = (math.sin(self.pulse * 2) + 1) * 0.5  # Value between 0 and 1
+        text_color = (255, 255, 255)
+        shadow_color = (0, 0, 0)
+        
+        # Draw text with dynamic shadow and glow
+        text_surface = self.font.render(self.text, True, text_color)
+        shadow_surface = self.font.render(self.text, True, shadow_color)
+        glow_text = self.font.render(self.text, True, (100, 200, 255))
+        
+        # Calculate positions for centered text
+        text_rect = text_surface.get_rect(center=(self.center_x, self.center_y))
+        
+        # Draw shadow with dynamic offset
+        shadow_offset = 4 + math.sin(self.pulse) * 2
+        shadow_rect = text_rect.copy()
+        shadow_rect.x += shadow_offset
+        shadow_rect.y += shadow_offset
+        screen.blit(shadow_surface, shadow_rect)
+        
+        # Draw glowing text effect
+        glow_rect = text_rect.copy()
+        glow_rect.x += math.sin(self.pulse * 3) * 2
+        glow_rect.y += math.cos(self.pulse * 3) * 2
+        glow_text.set_alpha(int(128 + 128 * shimmer))
+        screen.blit(glow_text, glow_rect)
+        
+        # Draw main text
+        screen.blit(text_surface, text_rect)
 
 # UI Elements
 class Button:
@@ -219,7 +316,9 @@ def draw_menu(screen):
     # Use EASY theme colors for menu background
     colors = UI_COLORS[Level.EASY]
     screen.fill(colors['background'])
-    font = pygame.font.Font(None, 74)
+    
+    # Create and update title
+    title = Title()
     
     # Define menu colors that will match snake colors
     MENU_COLORS = {
@@ -230,22 +329,22 @@ def draw_menu(screen):
         'click_fill': (240, 240, 240, 128)  # Dusty white with transparency for click effect
     }
     
+    font = pygame.font.Font(None, 74)
+    
     # Create all text surfaces first
-    title_text = font.render('Choose LEVEL', True, colors['text'])
     easy_text = font.render('Easy', True, MENU_COLORS['Easy'])
     medium_text = font.render('Medium', True, MENU_COLORS['Medium'])
     hard_text = font.render('Hard', True, MENU_COLORS['Hard'])
 
-    # Calculate total menu height
-    total_height = MENU_ITEM_HEIGHT * 4  # Title + 3 options
-    start_y = (WINDOW_HEIGHT - total_height) // 2  # Center vertically
+    # Calculate total menu height and adjust positions to account for title
+    total_height = MENU_ITEM_HEIGHT * 3  # 3 options
+    start_y = (WINDOW_HEIGHT + WINDOW_HEIGHT // 3) // 2  # Start below the title
 
     # Create rectangles for menu items with padding
     padding = 20  # Padding around text for hover/click effects
-    title_rect = title_text.get_rect(center=(WINDOW_WIDTH/2, start_y))
-    easy_rect = easy_text.get_rect(center=(WINDOW_WIDTH/2, start_y + MENU_SPACING))
-    medium_rect = medium_text.get_rect(center=(WINDOW_WIDTH/2, start_y + MENU_SPACING * 2))
-    hard_rect = hard_text.get_rect(center=(WINDOW_WIDTH/2, start_y + MENU_SPACING * 3))
+    easy_rect = easy_text.get_rect(center=(WINDOW_WIDTH/2, start_y))
+    medium_rect = medium_text.get_rect(center=(WINDOW_WIDTH/2, start_y + MENU_SPACING))
+    hard_rect = hard_text.get_rect(center=(WINDOW_WIDTH/2, start_y + MENU_SPACING * 2))
 
     # Create larger rectangles for hover/click effects
     easy_hover_rect = pygame.Rect(easy_rect.x - padding, easy_rect.y - padding,
@@ -258,6 +357,10 @@ def draw_menu(screen):
     # Get mouse position and state
     mouse_pos = pygame.mouse.get_pos()
     mouse_pressed = pygame.mouse.get_pressed()[0]  # Left mouse button
+
+    # Update and draw title
+    title.update()
+    title.draw(screen)
 
     # Draw hover and click effects
     for rect, text_rect in [(easy_hover_rect, easy_rect), 
@@ -274,7 +377,6 @@ def draw_menu(screen):
                 screen.blit(s, rect)
 
     # Draw menu items
-    screen.blit(title_text, title_rect)
     screen.blit(easy_text, easy_rect)
     screen.blit(medium_text, medium_rect)
     screen.blit(hard_text, hard_rect)

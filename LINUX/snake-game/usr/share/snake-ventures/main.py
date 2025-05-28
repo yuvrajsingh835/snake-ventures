@@ -226,17 +226,12 @@ class Snake:
 
         # Check boundary collision for Medium and Hard levels
         if self.level in [Level.MEDIUM, Level.HARD]:
-            # Calculate exact boundary positions
-            left_boundary = BOUNDARY_THICKNESS
-            right_boundary = GRID_WIDTH - BOUNDARY_THICKNESS
-            top_boundary = (UI_HEIGHT // GRID_SIZE) + BOUNDARY_THICKNESS
-            bottom_boundary = GRID_HEIGHT - BOUNDARY_THICKNESS
-
-            # Check if the snake's new position would intersect with the boundary
-            if (new[0] <= left_boundary or 
-                new[0] >= right_boundary or 
-                new[1] <= top_boundary or 
-                new[1] >= bottom_boundary):
+            # Add a small buffer to boundary collision to prevent clipping
+            buffer = 0.1
+            if (new[0] < BOUNDARY_THICKNESS + buffer or 
+                new[0] >= GRID_WIDTH - (BOUNDARY_THICKNESS + buffer) or 
+                new[1] < (UI_HEIGHT // GRID_SIZE) + BOUNDARY_THICKNESS + buffer or 
+                new[1] >= GRID_HEIGHT - (BOUNDARY_THICKNESS + buffer)):
                 return False
         else:
             # Wrap around for Easy level, but respect UI area
@@ -281,19 +276,18 @@ class Food:
         self.randomize_position()
 
     def randomize_position(self):
-        # Calculate playable area based on boundaries
+        # Add buffer to prevent food spawning too close to boundaries
+        buffer = 1
         if self.level in [Level.MEDIUM, Level.HARD]:
-            # Add a larger buffer (1.5 grid cells) to prevent food from spawning on or near boundaries
-            buffer = 1.5
             min_x = int(BOUNDARY_THICKNESS + buffer)
-            max_x = int(GRID_WIDTH - BOUNDARY_THICKNESS - buffer - 1)  # Subtract 1 to ensure we're well within bounds
+            max_x = int(GRID_WIDTH - BOUNDARY_THICKNESS - buffer)
             min_y = int((UI_HEIGHT // GRID_SIZE) + BOUNDARY_THICKNESS + buffer)
-            max_y = int(GRID_HEIGHT - BOUNDARY_THICKNESS - buffer - 1)  # Subtract 1 to ensure we're well within bounds
+            max_y = int(GRID_HEIGHT - BOUNDARY_THICKNESS - buffer)
         else:
-            min_x = 1  # Keep food away from screen edges even in easy mode
-            max_x = GRID_WIDTH - 2
-            min_y = (UI_HEIGHT // GRID_SIZE) + 1
-            max_y = GRID_HEIGHT - 2
+            min_x = 0
+            max_x = GRID_WIDTH - 1
+            min_y = UI_HEIGHT // GRID_SIZE
+            max_y = GRID_HEIGHT - 1
 
         # Ensure we have valid ranges
         max_x = max(min_x, max_x)
@@ -605,28 +599,26 @@ def main():
                 (hard_hover_rect, hard_rect, hard_text)
             ]:
                 if hover_rect.collidepoint(mouse_pos):
-                    # Draw white rectangle outline with glow effect
+                    # Draw hover effect
                     for i in range(3):  # Create a subtle glow effect
                         glow_rect = hover_rect.inflate(i*2, i*2)
                         pygame.draw.rect(screen, menu_colors['hover_outline'], glow_rect, 2, border_radius=10)
-                
-                # Draw the menu text
                 screen.blit(text_surface, text_rect)
             
-            # Update display
             pygame.display.update()
-            
-            # Handle events
+            clock.tick(60)
+
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     sys.exit()
                 elif event.type == pygame.MOUSEBUTTONDOWN:
-                    if easy_hover_rect.collidepoint(event.pos):
+                    mouse_pos = event.pos
+                    if easy_hover_rect.collidepoint(mouse_pos):
                         level = Level.EASY
-                    elif medium_hover_rect.collidepoint(event.pos):
+                    elif medium_hover_rect.collidepoint(mouse_pos):
                         level = Level.MEDIUM
-                    elif hard_hover_rect.collidepoint(event.pos):
+                    elif hard_hover_rect.collidepoint(mouse_pos):
                         level = Level.HARD
                 elif event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_ESCAPE:
@@ -634,100 +626,90 @@ def main():
                         sys.exit()
                 elif event.type == pygame.VIDEORESIZE:
                     screen = resize_window(event.w, event.h, screen)
-                    # Recreate menu items after resize
                     title, easy_items, medium_items, hard_items, menu_colors = draw_menu(screen)
                     easy_hover_rect, easy_rect, easy_text = easy_items
                     medium_hover_rect, medium_rect, medium_text = medium_items
                     hard_hover_rect, hard_rect, hard_text = hard_items
-            
-            # Control frame rate
-            clock.tick(60)
 
-        # Game loop
+        # Set speed based on level
+        if level == Level.EASY:
+            SNAKE_SPEED = SPEED_EASY
+        elif level == Level.MEDIUM:
+            SNAKE_SPEED = SPEED_MEDIUM
+        else:  # HARD
+            SNAKE_SPEED = SPEED_HARD
+
+        snake = Snake(level)
+        food = Food(level)
+        
+        # Create pause button
+        pause_button = Button(WINDOW_WIDTH - 100, 5, 90, 30, "Pause", level=level)
+        paused = False
+        return_to_menu = False
+
         while True:
-            # Set speed based on level
-            if level == Level.EASY:
-                SNAKE_SPEED = SPEED_EASY
-            elif level == Level.MEDIUM:
-                SNAKE_SPEED = SPEED_MEDIUM
-            else:  # HARD
-                SNAKE_SPEED = SPEED_HARD
-
-            snake = Snake(level)
-            food = Food(level)
-            
-            # Create pause button
-            pause_button = Button(WINDOW_WIDTH - 100, 5, 90, 30, "Pause", level=level)
-            paused = False
-            return_to_menu = False
-
-            # Inner game loop
-            while True:
-                for event in pygame.event.get():
-                    if event.type == pygame.QUIT:
-                        pygame.quit()
-                        sys.exit()
-                    elif event.type == pygame.KEYDOWN:
-                        if event.key == pygame.K_ESCAPE:
-                            paused = not paused
-                            if paused:
-                                return_to_menu = show_pause_screen(screen, level)
-                        elif event.key == pygame.K_m and paused:
-                            return_to_menu = True
-                        elif not paused:
-                            if event.key == pygame.K_UP and snake.direction != (0, 1):
-                                snake.direction = (0, -1)
-                            elif event.key == pygame.K_DOWN and snake.direction != (0, -1):
-                                snake.direction = (0, 1)
-                            elif event.key == pygame.K_LEFT and snake.direction != (1, 0):
-                                snake.direction = (-1, 0)
-                            elif event.key == pygame.K_RIGHT and snake.direction != (-1, 0):
-                                snake.direction = (1, 0)
-                    elif event.type == pygame.VIDEORESIZE:
-                        screen = resize_window(event.w, event.h, screen, snake, food, level, pause_button, paused)
-                    
-                    # Handle pause button events
-                    if pause_button.handle_event(event):
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+                elif event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_ESCAPE:
                         paused = not paused
                         if paused:
                             return_to_menu = show_pause_screen(screen, level)
-
-                if return_to_menu:
-                    break
-
-                if not paused:
-                    # Update snake
-                    if not snake.update():
-                        return_to_menu = show_game_over(screen, snake.score, level)
-                        break
-
-                    # Check if snake ate the food
-                    snake_head_rect = pygame.Rect(
-                        snake.positions[0][0] * GRID_SIZE + (GRID_SIZE - SNAKE_SIZE) // 2,
-                        snake.positions[0][1] * GRID_SIZE + (GRID_SIZE - SNAKE_SIZE) // 2,
-                        SNAKE_SIZE,
-                        SNAKE_SIZE
-                    )
-                    food_rect = food.get_collision_rect()
-
-                    if snake_head_rect.colliderect(food_rect):
-                        snake.length += 1
-                        snake.score += 10
-                        food.randomize_position()
-
-                    # Draw everything
-                    screen.fill(UI_COLORS[level]['background'])
-                    draw_ui_area(screen, snake.score, level, pause_button)
-                    if level in [Level.MEDIUM, Level.HARD]:
-                        draw_boundaries(screen, level)
-                    snake.render(screen)
-                    food.render(screen)
-
-                    pygame.display.update()
-                    clock.tick(SNAKE_SPEED)
+                    elif event.key == pygame.K_m and paused:
+                        return_to_menu = True
+                    elif not paused:
+                        if event.key == pygame.K_UP and snake.direction != (0, 1):
+                            snake.direction = (0, -1)
+                        elif event.key == pygame.K_DOWN and snake.direction != (0, -1):
+                            snake.direction = (0, 1)
+                        elif event.key == pygame.K_LEFT and snake.direction != (1, 0):
+                            snake.direction = (-1, 0)
+                        elif event.key == pygame.K_RIGHT and snake.direction != (-1, 0):
+                            snake.direction = (1, 0)
+                elif event.type == pygame.VIDEORESIZE:
+                    screen = resize_window(event.w, event.h, screen, snake, food, level, pause_button, paused)
+                
+                # Handle pause button events
+                if pause_button.handle_event(event):
+                    paused = not paused
+                    if paused:
+                        return_to_menu = show_pause_screen(screen, level)
 
             if return_to_menu:
-                break  # Return to main menu
+                break
 
-if __name__ == '__main__':
+            if not paused:
+                # Update snake
+                if not snake.update():
+                    if show_game_over(screen, snake.score, level):
+                        break
+
+                # Check if snake ate the food using the actual rendered rectangles
+                snake_head_rect = pygame.Rect(
+                    snake.positions[0][0] * GRID_SIZE + (GRID_SIZE - SNAKE_SIZE) // 2,
+                    snake.positions[0][1] * GRID_SIZE + (GRID_SIZE - SNAKE_SIZE) // 2,
+                    SNAKE_SIZE,
+                    SNAKE_SIZE
+                )
+
+                food_rect = food.get_collision_rect()
+                if snake_head_rect.colliderect(food_rect):
+                    snake.length += 1
+                    snake.score += 1
+                    food.randomize_position()
+
+                # Draw everything
+                screen.fill(UI_COLORS[level]['background'])
+                draw_ui_area(screen, snake.score, level, pause_button)
+                if level in [Level.MEDIUM, Level.HARD]:
+                    draw_boundaries(screen, level)
+                snake.render(screen)
+                food.render(screen)
+                pygame.display.update()
+
+            clock.tick(SNAKE_SPEED)
+
+if __name__ == "__main__":
     main() 

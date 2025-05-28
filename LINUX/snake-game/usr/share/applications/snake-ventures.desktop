@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=Snake Ventures
+Comment=A modern Snake game with multiple difficulty levels
+Exec=snake-ventures
+Terminal=false
+Type=Application
+Categories=Game;

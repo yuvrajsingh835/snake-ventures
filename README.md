@@ -25,11 +25,14 @@ This repository contains both Windows and Linux versions of the game:
   - Easy: Limegreen snake
   - Medium: Orange snake
   - Hard: Neon cyan snake
+- Animated title with figure-8 snake pattern
+- Rainbow color effects
 - Clean white text UI for better readability across all modes
 - Resizable game window
-- Pause functionality
-- Score tracking
+- Red glowing game over screen with hover effects
+- Score tracking and Pause functionality
 - Return to menu option while paused
+- Return to menu and Restart option when GAME OVER
 
 ## Installation & Running
 
@@ -57,6 +60,7 @@ sudo apt-get install -f  # Install dependencies if needed
 - Arrow keys: Control snake direction
 - ESC: Pause game
 - M (while paused): Return to main menu
+- SPACE: Restarts the game with current selected difficulty level
 - Mouse: Menu navigation and button clicks
 
 ## Source Code
