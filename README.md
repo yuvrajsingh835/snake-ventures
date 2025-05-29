@@ -2,6 +2,8 @@
 
 A modern implementation of the classic Snake game with multiple difficulty levels, dynamic themes, and resizable window support.
 
+![Screenshot 2025-05-28 053940](https://github.com/user-attachments/assets/acc8d688-ee3f-4f1e-92df-ccae021a1944)
+
 ## Available Versions
 
 This repository contains both Windows and Linux versions of the game:
