@@ -1,6 +1,6 @@
 # Snake Ventures Game
 
-A modern implementation of the classic Snake game with multiple difficulty levels, dynamic themes, and resizable window support built entirely using AI in just 2 hours!
+A modern implementation of the classic Snake game with multiple difficulty levels, dynamic themes, and resizable window support built for the final project submission for the Code in Palace'25 from Stanford University.
 
 ![Screenshot 2025-05-28 053940](https://github.com/user-attachments/assets/acc8d688-ee3f-4f1e-92df-ccae021a1944)
 
